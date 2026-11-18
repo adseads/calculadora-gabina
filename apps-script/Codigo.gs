@@ -10,7 +10,8 @@ const SENHA = '1234';
 
 const ABAS = {
   Filamentos: ['ID', 'Material', 'Cor', 'Acabamento', 'Cor (hex)', 'Rolos fechados', 'Rolo aberto (g)', 'Peso do rolo (g)', 'Preço (R$/kg)', 'Total (g)', 'Situação', 'Atualizado em'],
-  Insumos: ['ID', 'Item', 'Categoria', 'Quantidade', 'Mínimo', 'Unidade', 'Custo unitário', 'Situação', 'Atualizado em']
+  Insumos: ['ID', 'Item', 'Categoria', 'Quantidade', 'Mínimo', 'Unidade', 'Custo unitário', 'Situação', 'Atualizado em'],
+  'Histórico': ['Data', 'O que foi impresso', 'Material', 'Cor', 'Gramas', 'Custo (R$)', 'Descontou do estoque?']
 };
 
 const FILAMENTOS_INICIAIS = [
@@ -59,7 +60,7 @@ function preparar() {
 /* ---------- Leitura ---------- */
 function doGet() {
   preparar();
-  return json_({ ok: true, filamentos: lerFilamentos_(), insumos: lerInsumos_() });
+  return json_({ ok: true, filamentos: lerFilamentos_(), insumos: lerInsumos_(), historico: lerHistorico_() });
 }
 
 /* ---------- Alterações ---------- */
@@ -85,6 +86,9 @@ function doPost(e) {
         if (p.acao === 'usar') {
           let g = Number(p.gramas) || 0;
           if (g <= 0) return json_({ ok: false, erro: 'Informe as gramas usadas.' });
+          const descontar = p.descontar !== false;
+          ss.getSheetByName('Histórico').appendRow([p.data ? new Date(p.data + 'T12:00:00') : new Date(), p.peca || '', f.material, f.cor, g, Math.round(g / 1000 * f.preco * 100) / 100, descontar ? 'Sim' : 'Não']);
+          if (!descontar) return doGet();
           if (g > f.aberto + f.fechados * f.pesoRolo) return json_({ ok: false, erro: 'Não há filamento suficiente dessa cor no estoque.' });
           while (g > f.aberto) { g -= f.aberto; f.fechados -= 1; f.aberto = f.pesoRolo; }
           f.aberto = Math.round((f.aberto - g) * 10) / 10;
@@ -161,6 +165,14 @@ function lerFilamentos_() {
   return aba.getRange(2, 1, aba.getLastRow() - 1, ABAS.Filamentos.length).getValues()
     .filter(function (r) { return r[0] !== ''; }).map(filamentoDaLinha_);
 }
+function lerHistorico_() {
+  const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Histórico');
+  if (aba.getLastRow() < 2) return [];
+  return aba.getRange(2, 1, aba.getLastRow() - 1, 7).getValues()
+    .filter(function (r) { return r[0] !== ''; })
+    .map(function (r) { return { data: r[0] instanceof Date ? Utilities.formatDate(r[0], 'America/Sao_Paulo', 'yyyy-MM-dd') : String(r[0]), peca: r[1], material: r[2], cor: r[3], gramas: Number(r[4]) || 0, custo: Number(r[5]) || 0, descontou: r[6] }; });
+}
+
 function lerInsumos_() {
   const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Insumos');
   if (aba.getLastRow() < 2) return [];

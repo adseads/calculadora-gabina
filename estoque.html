@@ -57,6 +57,14 @@ body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:
 .box .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .box .fim{display:flex;gap:8px;margin-top:18px}
 .box .fim .btn{flex:1}
+.pecas{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:12px;font-size:14px;font-weight:600}
+.pf{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:10px;background:#fcfbf9}
+.pf input{border:0;background:transparent;font:inherit;font-size:16px;width:80px;padding:8px 10px;outline:none}
+.pf span{padding-right:10px;color:var(--muted)}
+.cabe{margin-top:8px;font-size:13.5px;background:var(--soft);color:#8a3a17;border-radius:8px;padding:6px 10px;font-weight:600}
+.hist td,.hist th{padding:8px 6px;border-bottom:1px solid var(--line);font-size:13.5px;text-align:left}
+.hist th{font-size:11.5px;text-transform:uppercase;color:var(--muted)}
+.hist .n{text-align:right;white-space:nowrap}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:30}
 .toast.on{opacity:1}
 .carregando{opacity:.5;pointer-events:none}
@@ -71,10 +79,11 @@ body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:
     <div><small>Para comprar</small><b id="rCompra">—</b></div>
   </div>
   <div class="barra">
-    <div class="tabs"><button data-t="fil" class="on">Filamentos</button><button data-t="ins">Insumos</button></div>
+    <div class="tabs"><button data-t="fil" class="on">Filamentos</button><button data-t="ins">Insumos</button><button data-t="his">Histórico</button></div>
     <input class="busca" id="busca" placeholder="Buscar cor ou item…">
     <button class="btn" id="novo">+ Novo</button>
   </div>
+  <div class="pecas" id="pecasBox"><label for="pesoPeca">Quantas peças dá pra fazer? Peso da peça:</label><div class="pf"><input id="pesoPeca" type="number" inputmode="decimal" placeholder="ex: 15"><span>g</span></div></div>
   <div id="conteudo"><div class="vazio">Carregando estoque…</div></div>
 </div>
 
@@ -122,6 +131,21 @@ function render(){
   const nc=F.filter(f=>f.situacao==="Comprar").length+I.filter(i=>i.situacao==="Comprar").length;
   $("rCompra").textContent=nc?nc+" item"+(nc>1?"s":""):"Nada 🎉";
   const q=$("busca").value.trim().toLowerCase();
+  const pp=parseFloat(String($("pesoPeca").value).replace(",","."))||0;
+  $("pecasBox").style.display=aba==="fil"?"flex":"none";
+  $("novo").textContent=aba==="his"?"+ Lançar impressão antiga":"+ Novo";
+  if(aba==="his"){
+    const H=(dados.historico||[]).filter(h=>!q||(h.cor+" "+h.peca).toLowerCase().includes(q)).sort((a,b)=>b.data.localeCompare(a.data));
+    const tg=H.reduce((a,h)=>a+h.gramas,0), tc=H.reduce((a,h)=>a+h.custo,0);
+    const porCor={};H.forEach(h=>{porCor[h.cor]=(porCor[h.cor]||0)+h.gramas});
+    const top=Object.entries(porCor).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([c,g])=>`${esc(c)} <b>${fmt(g)} g</b>`).join(" · ");
+    $("conteudo").innerHTML=H.length?`<div class="resumo"><div><small>Impressões</small><b>${H.length}</b></div><div><small>Filamento gasto</small><b>${fmt(tg/1000)} kg</b></div><div><small>Custo do filamento</small><b>${brl(tc)}</b></div></div>
+      <div class="card" style="margin-bottom:10px;font-size:13.5px"><span class="sub">Cores mais usadas:</span> ${top}</div>
+      <div class="card" style="padding:4px 10px;overflow-x:auto"><table class="hist" style="width:100%;border-collapse:collapse"><thead><tr><th>Data</th><th>Impressão</th><th>Cor</th><th class="n">g</th><th class="n">Custo</th></tr></thead><tbody>${
+      H.map(h=>`<tr><td>${h.data.split("-").reverse().join("/")}</td><td>${esc(h.peca||"—")}</td><td>${esc(h.cor)}</td><td class="n">${fmt(h.gramas)}</td><td class="n">${brl(h.custo)}</td></tr>`).join("")}</tbody></table></div>`
+      :'<div class="vazio">Ainda não há impressões registradas.<br>Cada vez que alguém tocar em <b>Usei</b>, ela aparece aqui.<br>Para lançar impressões antigas, toque em <b>+ Lançar impressão antiga</b>.</div>';
+    return;
+  }
   if(aba==="fil"){
     const L=F.filter(f=>!q||(f.cor+" "+f.material+" "+f.acabamento).toLowerCase().includes(q))
       .sort((a,b)=>({Comprar:0,Acabando:1,OK:2}[a.situacao]-{Comprar:0,Acabando:1,OK:2}[b.situacao])||a.cor.localeCompare(b.cor));
@@ -131,6 +155,7 @@ function render(){
       return `<div class="card"><div class="top">${dot}<div><div class="nome">${esc(f.cor)}</div><div class="sub">${esc(f.material)} · ${esc(f.acabamento)}</div></div><span class="pill ${esc(f.situacao)}">${esc(f.situacao)}</span></div>
         <div class="nivel"><i style="width:${pct}%;background:${cor}"></i></div>
         <div class="info"><span>Total <b>${fmt(f.total)} g</b></span><span>${f.fechados} fechado${f.fechados===1?"":"s"} · aberto ${fmt(f.aberto)} g</span></div>
+        ${pp>0?`<div class="cabe">Dá pra fazer ~${Math.floor(f.total/(pp*1.1))} peças de ${fmt(pp)} g</div>`:""}
         <div class="acoes"><button class="btn dark sm" data-usar="${f.id}">Usei</button><button class="btn ghost sm" data-comprar="${f.id}">Comprei</button><button class="btn ghost sm" data-edf="${f.id}">Editar</button></div></div>`}).join("")+'</div>'
       :'<div class="vazio">Nenhum filamento encontrado.</div>';
   } else {
@@ -156,8 +181,15 @@ function pedirSenha(depois,msg){
 const fil=id=>dados.filamentos.find(f=>f.id===id), ins=id=>dados.insumos.find(i=>i.id===id);
 
 function usar(id){const f=fil(id);
-  abrir(`<h3>Usei ${esc(f.cor)}</h3><div class="sub">Tem ${fmt(f.total)} g. Se o rolo aberto acabar, um fechado é aberto sozinho.</div><label>Quantos gramas foram usados?</label><input id="g" type="number" inputmode="decimal" placeholder="ex: 62">${fim("Descontar")}`);
-  $("ok").onclick=()=>enviar({aba:"Filamentos",acao:"usar",id,gramas:num("g")},"Descontado do estoque");}
+  abrir(`<h3>Usei ${esc(f.cor)}</h3><div class="sub">Tem ${fmt(f.total)} g. Se o rolo aberto acabar, um fechado é aberto sozinho.</div><label>Quantos gramas foram usados?</label><input id="g" type="number" inputmode="decimal" placeholder="ex: 62"><label>O que foi impresso? (opcional)</label><input id="pc" placeholder="ex: 20 chaveiros igreja">${fim("Descontar")}`);
+  $("ok").onclick=()=>enviar({aba:"Filamentos",acao:"usar",id,gramas:num("g"),peca:val("pc")},"Descontado do estoque");}
+function lancarAntiga(){
+  const hoje=new Date().toISOString().slice(0,10);
+  abrir(`<h3>Lançar impressão antiga</h3><div class="sub">Fica no histórico, mas <b>não</b> desconta do estoque atual.</div>
+   <label>Cor</label><select id="cf">${dados.filamentos.map(f=>`<option value="${f.id}">${esc(f.cor)} (${esc(f.material)})</option>`).join("")}</select>
+   <div class="row"><div><label>Gramas</label><input id="g" type="number" inputmode="decimal"></div><div><label>Data</label><input id="dt" type="date" value="${hoje}"></div></div>
+   <label>O que foi impresso?</label><input id="pc">${fim("Lançar")}`);
+  $("ok").onclick=()=>enviar({aba:"Filamentos",acao:"usar",id:val("cf"),gramas:num("g"),peca:val("pc"),data:val("dt"),descontar:false},"Lançado no histórico");}
 function comprar(id){const f=fil(id);
   abrir(`<h3>Comprei ${esc(f.cor)}</h3><div class="row"><div><label>Rolos</label><input id="q" type="number" value="1"></div><div><label>Preço (R$/kg)</label><input id="p" type="number" value="${f.preco}"></div></div>${fim("Adicionar")}`);
   $("ok").onclick=()=>enviar({aba:"Filamentos",acao:"comprar",id,qtd:num("q"),preco:num("p")},"Rolo adicionado");}
@@ -200,7 +232,8 @@ document.addEventListener("click",e=>{
 });
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{aba=b.dataset.t;document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));render()});
 $("busca").addEventListener("input",render);
-$("novo").onclick=()=>aba==="fil"?formFil():formIns();
+$("novo").onclick=()=>aba==="fil"?formFil():aba==="ins"?formIns():lancarAntiga();
+$("pesoPeca").addEventListener("input",render);
 carregar();
 </script>
 </body>
