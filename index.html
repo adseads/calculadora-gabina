@@ -39,6 +39,10 @@ details{font-size:14px}
 summary{cursor:pointer;font-weight:600}
 .aj{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .aj .f input{font-size:16px;font-weight:500;padding:9px}
+.com{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:var(--brand)}
+.com .f input{font-size:18px;padding:8px 10px}
 .msg{font-size:13px;margin-top:8px;color:#2f8f5b}
 .msg.bad{color:#b42318}
 a.link{color:var(--muted);font-size:13px}
@@ -47,7 +51,7 @@ a.link{color:var(--muted);font-size:13px}
 <body>
 <div class="wrap">
   <h1>Gabina <span>3D</span></h1>
-  <p class="sub">Coloque o peso e o tempo que o Bambu Studio mostra depois de fatiar.</p>
+  <p class="sub">Coloque o peso e o tempo que o Bambu Studio mostra depois de fatiar. Embalagem é cobrada à parte.</p>
 
   <div class="card">
     <div class="inputs">
@@ -57,6 +61,10 @@ a.link{color:var(--muted);font-size:13px}
       </div>
     </div>
     <div class="imp">ou <label for="arq">importar o arquivo do Bambu Studio</label><input id="arq" type="file" accept=".3mf,.gcode"> <div id="msg" class="msg"></div></div>
+    <div class="com">
+      <label class="chk"><input type="checkbox" id="temCom"> Venda com indicação (comissão)</label>
+      <div class="f" id="comBox" style="max-width:150px;display:none"><input id="com" type="number" inputmode="decimal" value="10"><span>%</span></div>
+    </div>
   </div>
 
   <div class="card">
@@ -71,13 +79,12 @@ a.link{color:var(--muted);font-size:13px}
       <summary>Ajustar valores</summary>
       <div class="aj">
         <div><label>Carretel (R$/kg)</label><div class="f"><input id="kg" type="number" value="100"></div></div>
-        <div><label>Embalagem (R$/peça)</label><div class="f"><input id="emb" type="number" step="0.1" value="1.20"></div></div>
-        <div><label>Família (× gasto)</label><div class="f"><input id="x1" type="number" step="0.1" value="2"></div></div>
+                <div><label>Família (× gasto)</label><div class="f"><input id="x1" type="number" step="0.1" value="2"></div></div>
         <div><label>Lucro OK (× gasto)</label><div class="f"><input id="x2" type="number" step="0.1" value="3"></div></div>
         <div><label>Empresas (× gasto)</label><div class="f"><input id="x3" type="number" step="0.1" value="4"></div></div>
         <div><label>Luz (R$/kWh)</label><div class="f"><input id="kwh" type="number" step="0.01" value="0.95"></div></div>
       </div>
-      <p class="sub" style="margin:12px 0 0">O gasto real soma filamento, luz, desgaste e manutenção da impressora (R$ 1,20 por hora), 10% de peças perdidas e embalagem. O tempo de vocês não entra aqui: ele é pago pelo lucro.</p>
+      <p class="sub" style="margin:12px 0 0">O gasto real soma filamento, luz, desgaste e manutenção da impressora (R$ 1,20 por hora), e 10% de peças perdidas. A embalagem é cobrada à parte, conforme o pedido. O tempo de vocês não entra aqui: ele é pago pelo lucro. A comissão sai do preço de venda.</p>
     </details>
   </div>
   <a class="link" href="completa.html">Abrir a calculadora completa →</a>
@@ -104,19 +111,22 @@ const ar=p=>{const r=Math.floor(p)+0.9;return r<p?r+1:r};
 function calc(){
   const g=v("g"), h=v("h")+v("m")/60;
   const fil=g/1000*v("kg"), luz=0.12*h*v("kwh"), maq=1.20*h;
-  const perdas=(fil+luz+maq)*0.10/0.90, emb=v("emb");
-  const c=fil+luz+maq+perdas+emb;
+  const perdas=(fil+luz+maq)*0.10/0.90;
+  const c=fil+luz+maq+perdas;
+  const com=$("temCom").checked?v("com")/100:0;
   $("custo").textContent=brl(c);
-  $("det").innerHTML=[["Filamento",fil],["Luz",luz],["Desgaste da impressora",maq],["Peças perdidas (10%)",perdas],["Embalagem",emb]]
+  $("det").innerHTML=[["Filamento",fil],["Luz",luz],["Desgaste da impressora",maq],["Peças perdidas (10%)",perdas]]
     .map(i=>`<div><span>${i[0]}</span><span>${brl(i[1])}</span></div>`).join("");
   const S=[["a","Amigos & família","presentes, gente próxima",v("x1")],["b","Lucro OK","clientes em geral",v("x2")],["c","Empresas","corporativo, igreja, escolas",v("x3")]];
-  $("cen").innerHTML='<div style="font-weight:600">Preço sugerido e lucro</div>'+S.map(s=>{const p=ar(c*s[3]);const l=p-c;return `
+  $("cen").innerHTML='<div style="font-weight:600">Preço sugerido e lucro</div>'+S.map(s=>{const p=ar(c*s[3]);const cv=p*com;const l=p-c-cv;return `
     <div class="sc ${s[0]}"><div><h3>${s[1]}</h3><small>${s[2]}</small></div><div class="p">${brl(p)}</div>
-    <div class="l"><span>Lucro por peça</span><b>${brl(l)} <small>(${Math.round(l/p*100)}% do preço)</small></b></div></div>`}).join("");
-  try{localStorage.setItem("gabina_simples",JSON.stringify(["kg","emb","x1","x2","x3","kwh"].map(k=>$(k).value)))}catch(e){}
+    ${com?`<div class="l"><span>Comissão (${v("com")}%)</span><b>− ${brl(cv)}</b></div>`:""}
+    <div class="l"><span>Lucro por peça</span><b style="color:${l<0?"#b42318":"inherit"}">${brl(l)} <small>(${Math.round(l/p*100)}% do preço)</small></b></div></div>`}).join("");
+  try{localStorage.setItem("gabina_simples",JSON.stringify(["kg","x1","x2","x3","kwh"].map(k=>$(k).value)))}catch(e){}
 }
-try{const s=JSON.parse(localStorage.getItem("gabina_simples"));if(s)["kg","emb","x1","x2","x3","kwh"].forEach((k,i)=>$(k).value=s[i])}catch(e){}
+try{const s=JSON.parse(localStorage.getItem("gabina_simples"));if(s)["kg","x1","x2","x3","kwh"].forEach((k,i)=>$(k).value=s[i])}catch(e){}
 document.querySelectorAll("input[type=number]").forEach(i=>i.addEventListener("input",calc));
+$("temCom").addEventListener("change",()=>{$("comBox").style.display=$("temCom").checked?"flex":"none";calc()});
 function setTempo(sec,g){$("g").value=g.toFixed(1);$("h").value=Math.floor(sec/3600);$("m").value=Math.round(sec%3600/60);calc()}
 $("arq").addEventListener("change",async e=>{
   const f=e.target.files[0]; if(!f) return; const msg=$("msg"); msg.className="msg"; msg.textContent="Lendo…";
