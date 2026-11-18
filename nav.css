@@ -1,0 +1,5 @@
+.gnav{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:6px;padding:10px 16px;background:#1f1d1a;font-family:Inter,system-ui,sans-serif}
+.gnav .marca{font-family:Fraunces,serif;font-weight:800;color:#fff;font-size:18px;margin-right:auto}
+.gnav .marca em{font-style:normal;color:#e8572a}
+.gnav a{color:#cfc8bd;text-decoration:none;font-size:14px;font-weight:600;padding:7px 12px;border-radius:999px}
+.gnav a.on{background:#e8572a;color:#fff}

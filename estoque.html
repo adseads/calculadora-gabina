@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gabina 3D — Estoque</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="nav.css">
+<style>
+:root{--bg:#f6f3ee;--ink:#1f1d1a;--muted:#6f6a62;--line:#e6e0d6;--brand:#e8572a;--soft:#fde9e1;--ok:#2f8f5b;--warn:#b9821a;--bad:#b42318}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px 60px}
+.resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.resumo div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
+.resumo small{color:var(--muted);font-size:12px;display:block}
+.resumo b{font-family:Fraunces,serif;font-size:22px}
+.barra{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.tabs{display:flex;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px}
+.tabs button{border:0;background:transparent;padding:8px 16px;border-radius:999px;font:inherit;font-weight:600;cursor:pointer;color:var(--muted)}
+.tabs button.on{background:var(--ink);color:#fff}
+.busca{flex:1;min-width:140px;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font:inherit;background:#fff}
+.btn{border:0;background:var(--brand);color:#fff;padding:9px 14px;border-radius:999px;font:inherit;font-weight:600;cursor:pointer;font-size:14px}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.dark{background:var(--ink)}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn.danger{background:#fff;color:var(--bad);border:1px solid #f3b4b4}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+.top{display:flex;gap:10px;align-items:center}
+.dot{width:34px;height:34px;border-radius:50%;border:1px solid #0002;flex:none}
+.dot.multi{background:conic-gradient(#FFD600 0 120deg,#2F7FE0 0 240deg,#F06292 0)}
+.nome{font-weight:700}
+.sub{color:var(--muted);font-size:12.5px}
+.pill{margin-left:auto;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.OK{background:#e3f3ea;color:var(--ok)}.pill.Acabando{background:#f8efda;color:var(--warn)}.pill.Comprar{background:#fde8e8;color:var(--bad)}
+.nivel{height:8px;background:#f0ebe3;border-radius:8px;margin:12px 0 6px;overflow:hidden}
+.nivel i{display:block;height:100%;border-radius:8px}
+.info{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.info b{color:var(--ink)}
+.acoes{display:flex;gap:6px;margin-top:12px}
+.acoes .btn{flex:1}
+.lista .card{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.qtd{display:flex;align-items:center;gap:8px}
+.qtd b{min-width:42px;text-align:center;font-size:18px}
+.qtd button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:18px;cursor:pointer}
+.vazio{color:var(--muted);text-align:center;padding:30px 10px;background:#fff;border:1px dashed var(--line);border-radius:14px}
+.aviso{background:#fff4e5;border:1px solid #f3d3a6;color:#7a4a08;padding:14px;border-radius:14px;font-size:14px;line-height:1.5}
+.modal{position:fixed;inset:0;background:#0006;display:none;align-items:flex-end;justify-content:center;z-index:20}
+.modal.on{display:flex}
+@media(min-width:600px){.modal{align-items:center}}
+.box{background:#fff;width:100%;max-width:420px;border-radius:18px 18px 0 0;padding:20px}
+@media(min-width:600px){.box{border-radius:18px}}
+.box h3{margin:0 0 4px;font-family:Fraunces,serif;font-size:20px}
+.box label{display:block;font-size:12.5px;font-weight:600;margin:12px 0 4px}
+.box input,.box select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:16px}
+.box .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.box .fim{display:flex;gap:8px;margin-top:18px}
+.box .fim .btn{flex:1}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:30}
+.toast.on{opacity:1}
+.carregando{opacity:.5;pointer-events:none}
+</style>
+</head>
+<body>
+<nav class="gnav"><span class="marca">Gabina <em>3D</em></span><a href="./">Calculadora</a><a href="estoque.html" class="on">Estoque</a></nav>
+<div class="wrap" id="app">
+  <div class="resumo">
+    <div><small>Filamento</small><b id="rKg">—</b></div>
+    <div><small>Valor em estoque</small><b id="rVal">—</b></div>
+    <div><small>Para comprar</small><b id="rCompra">—</b></div>
+  </div>
+  <div class="barra">
+    <div class="tabs"><button data-t="fil" class="on">Filamentos</button><button data-t="ins">Insumos</button></div>
+    <input class="busca" id="busca" placeholder="Buscar cor ou item…">
+    <button class="btn" id="novo">+ Novo</button>
+  </div>
+  <div id="conteudo"><div class="vazio">Carregando estoque…</div></div>
+</div>
+
+<div class="modal" id="modal"><div class="box" id="box"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script>
+const API = (window.GABINA_API||"").trim();
+const $=id=>document.getElementById(id);
+const brl=x=>Number(x||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fmt=x=>Number(x||0).toLocaleString("pt-BR",{maximumFractionDigits:1});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let dados={filamentos:[],insumos:[]}, aba="fil";
+const CATS=["Embalagem","Chaveiro","Ímã","Fita / laço","Tag / cartão","Cola / acabamento","Outro"];
+const UNS=["un.","pacote","metro","rolo"];
+
+function senha(){try{return localStorage.getItem("gabina_senha")||""}catch(e){return ""}}
+function salvaSenha(s){try{localStorage.setItem("gabina_senha",s)}catch(e){}}
+function toast(t){const el=$("toast");el.textContent=t;el.classList.add("on");setTimeout(()=>el.classList.remove("on"),2200)}
+
+async function carregar(){
+  if(!API){$("conteudo").innerHTML='<div class="aviso"><b>Estoque ainda não conectado.</b><br>Falta colar o endereço da Planilha Google no arquivo <code>config.js</code>. Veja o passo a passo no README do repositório.</div>';return}
+  try{const r=await fetch(API);const j=await r.json();if(!j.ok)throw new Error(j.erro);dados=j;render()}
+  catch(e){$("conteudo").innerHTML='<div class="aviso">Não consegui carregar o estoque. Confira a internet e tente de novo.<br><small>'+esc(e.message)+'</small></div>'}
+}
+
+async function enviar(corpo, msgOk){
+  let s=senha();
+  if(!s){pedirSenha(()=>enviar(corpo,msgOk));return}
+  $("app").classList.add("carregando");
+  try{
+    const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({...corpo,senha:s})});
+    const j=await r.json();
+    if(!j.ok){ if(/senha/i.test(j.erro)){salvaSenha("");pedirSenha(()=>enviar(corpo,msgOk),"Senha incorreta, tente de novo.")} else toast(j.erro); return}
+    dados=j;fechar();render();toast(msgOk||"Estoque atualizado");
+  }catch(e){toast("Erro ao salvar. Tente de novo.")}
+  finally{$("app").classList.remove("carregando")}
+}
+
+function render(){
+  const F=dados.filamentos, I=dados.insumos;
+  $("rKg").textContent=fmt(F.reduce((a,f)=>a+f.total,0)/1000)+" kg";
+  $("rVal").textContent=brl(F.reduce((a,f)=>a+f.total/1000*f.preco,0)+I.reduce((a,i)=>a+i.qtd*i.custo,0));
+  const nc=F.filter(f=>f.situacao==="Comprar").length+I.filter(i=>i.situacao==="Comprar").length;
+  $("rCompra").textContent=nc?nc+" item"+(nc>1?"s":""):"Nada 🎉";
+  const q=$("busca").value.trim().toLowerCase();
+  if(aba==="fil"){
+    const L=F.filter(f=>!q||(f.cor+" "+f.material+" "+f.acabamento).toLowerCase().includes(q))
+      .sort((a,b)=>({Comprar:0,Acabando:1,OK:2}[a.situacao]-{Comprar:0,Acabando:1,OK:2}[b.situacao])||a.cor.localeCompare(b.cor));
+    $("conteudo").innerHTML=L.length?'<div class="grid">'+L.map(f=>{
+      const pct=Math.min(100,f.total/(f.pesoRolo*2)*100), cor={OK:"#2f8f5b",Acabando:"#d39a1f",Comprar:"#b42318"}[f.situacao];
+      const dot=f.hex==="multi"?'<div class="dot multi"></div>':`<div class="dot" style="background:${esc(f.hex)}"></div>`;
+      return `<div class="card"><div class="top">${dot}<div><div class="nome">${esc(f.cor)}</div><div class="sub">${esc(f.material)} · ${esc(f.acabamento)}</div></div><span class="pill ${esc(f.situacao)}">${esc(f.situacao)}</span></div>
+        <div class="nivel"><i style="width:${pct}%;background:${cor}"></i></div>
+        <div class="info"><span>Total <b>${fmt(f.total)} g</b></span><span>${f.fechados} fechado${f.fechados===1?"":"s"} · aberto ${fmt(f.aberto)} g</span></div>
+        <div class="acoes"><button class="btn dark sm" data-usar="${f.id}">Usei</button><button class="btn ghost sm" data-comprar="${f.id}">Comprei</button><button class="btn ghost sm" data-edf="${f.id}">Editar</button></div></div>`}).join("")+'</div>'
+      :'<div class="vazio">Nenhum filamento encontrado.</div>';
+  } else {
+    const L=I.filter(i=>!q||(i.item+" "+i.categoria).toLowerCase().includes(q)).sort((a,b)=>a.categoria.localeCompare(b.categoria)||a.item.localeCompare(b.item));
+    $("conteudo").innerHTML=L.length?'<div class="lista">'+L.map(i=>`<div class="card"><div><div class="nome">${esc(i.item)} <span class="pill ${esc(i.situacao)}" style="margin-left:6px">${esc(i.situacao)}</span></div><div class="sub">${esc(i.categoria)} · mínimo ${fmt(i.minimo)} ${esc(i.unidade)} · <a href="#" data-edi="${i.id}" style="color:inherit">editar</a></div></div>
+      <div class="qtd"><button data-mv="${i.id}" data-d="-1">−</button><b>${fmt(i.qtd)}</b><button data-mv="${i.id}" data-d="1">+</button></div></div>`).join("")+'</div>'
+      :'<div class="vazio">Nenhum insumo cadastrado ainda.<br>Toque em <b>+ Novo</b> para adicionar embalagens, argolas de chaveiro, ímãs…</div>';
+  }
+}
+
+/* modais */
+function abrir(html){$("box").innerHTML=html;$("modal").classList.add("on");const i=$("box").querySelector("input");if(i)setTimeout(()=>i.focus(),50)}
+function fechar(){$("modal").classList.remove("on")}
+$("modal").addEventListener("click",e=>{if(e.target.id==="modal")fechar()});
+const fim=(ok="Salvar")=>`<div class="fim"><button class="btn ghost" onclick="fechar()">Cancelar</button><button class="btn" id="ok">${ok}</button></div>`;
+const val=id=>$(id).value;
+const num=id=>parseFloat(String($(id).value).replace(",","."))||0;
+
+function pedirSenha(depois,msg){
+  abrir(`<h3>Senha do estoque</h3><div class="sub">${msg||"Só pedimos uma vez neste aparelho."}</div><label>Senha</label><input id="s" type="password" inputmode="numeric">${fim("Entrar")}`);
+  $("ok").onclick=()=>{salvaSenha(val("s"));depois()};
+}
+const fil=id=>dados.filamentos.find(f=>f.id===id), ins=id=>dados.insumos.find(i=>i.id===id);
+
+function usar(id){const f=fil(id);
+  abrir(`<h3>Usei ${esc(f.cor)}</h3><div class="sub">Tem ${fmt(f.total)} g. Se o rolo aberto acabar, um fechado é aberto sozinho.</div><label>Quantos gramas foram usados?</label><input id="g" type="number" inputmode="decimal" placeholder="ex: 62">${fim("Descontar")}`);
+  $("ok").onclick=()=>enviar({aba:"Filamentos",acao:"usar",id,gramas:num("g")},"Descontado do estoque");}
+function comprar(id){const f=fil(id);
+  abrir(`<h3>Comprei ${esc(f.cor)}</h3><div class="row"><div><label>Rolos</label><input id="q" type="number" value="1"></div><div><label>Preço (R$/kg)</label><input id="p" type="number" value="${f.preco}"></div></div>${fim("Adicionar")}`);
+  $("ok").onclick=()=>enviar({aba:"Filamentos",acao:"comprar",id,qtd:num("q"),preco:num("p")},"Rolo adicionado");}
+function formFil(f){f=f||{material:"PLA",acabamento:"Básico",hex:"#cccccc",fechados:1,aberto:0,pesoRolo:1000,preco:100};
+  const multi=f.hex==="multi";
+  abrir(`<h3>${f.id?"Editar filamento":"Novo filamento"}</h3>
+   <div class="row"><div><label>Material</label><select id="m">${["PLA","PETG","TPU","ABS"].map(x=>`<option ${x===f.material?"selected":""}>${x}</option>`).join("")}</select></div>
+   <div><label>Acabamento</label><select id="a">${["Básico","Silk","Fosco","Multicolor","Transparente","Glitter"].map(x=>`<option ${x===f.acabamento?"selected":""}>${x}</option>`).join("")}</select></div></div>
+   <div class="row"><div><label>Cor (nome)</label><input id="c" value="${esc(f.cor||"")}"></div><div><label>Cor (visual)</label><input id="h" type="color" value="${multi?"#cccccc":esc(f.hex)}" style="height:44px;padding:4px"></div></div>
+   <div class="row"><div><label>Rolos fechados</label><input id="fe" type="number" value="${f.fechados}"></div><div><label>Rolo aberto (g)</label><input id="ab" type="number" value="${f.aberto}"></div></div>
+   <div class="row"><div><label>Peso do rolo (g)</label><input id="pr" type="number" value="${f.pesoRolo}"></div><div><label>Preço (R$/kg)</label><input id="pc" type="number" value="${f.preco}"></div></div>
+   ${fim()}${f.id?'<div class="fim"><button class="btn danger" id="del">Remover este filamento</button></div>':""}`);
+  $("ok").onclick=()=>{if(!val("c").trim()){toast("Dê um nome para a cor");return}
+    const item={material:val("m"),acabamento:val("a"),cor:val("c").trim(),hex:(val("a")==="Multicolor"?"multi":val("h")),fechados:num("fe"),aberto:num("ab"),pesoRolo:num("pr")||1000,preco:num("pc")};
+    enviar(f.id?{aba:"Filamentos",acao:"editar",id:f.id,item}:{aba:"Filamentos",acao:"adicionar",item});};
+  if(f.id)$("del").onclick=()=>confirmar(`Remover ${esc(f.cor)} do estoque?`,()=>enviar({aba:"Filamentos",acao:"remover",id:f.id},"Removido"));
+}
+function formIns(i){i=i||{categoria:"Embalagem",unidade:"un.",qtd:0,minimo:10,custo:0};
+  abrir(`<h3>${i.id?"Editar insumo":"Novo insumo"}</h3>
+   <label>Item</label><input id="it" value="${esc(i.item||"")}" placeholder="ex: Argola de chaveiro prata">
+   <div class="row"><div><label>Categoria</label><select id="ca">${CATS.map(x=>`<option ${x===i.categoria?"selected":""}>${x}</option>`).join("")}</select></div>
+   <div><label>Unidade</label><select id="un">${UNS.map(x=>`<option ${x===i.unidade?"selected":""}>${x}</option>`).join("")}</select></div></div>
+   <div class="row"><div><label>Quantidade</label><input id="qt" type="number" value="${i.qtd}"></div><div><label>Avisar quando chegar em</label><input id="mi" type="number" value="${i.minimo}"></div></div>
+   <label>Custo por unidade (R$)</label><input id="cu" type="number" step="0.01" value="${i.custo}">
+   ${fim()}${i.id?'<div class="fim"><button class="btn danger" id="del">Remover este item</button></div>':""}`);
+  $("ok").onclick=()=>{if(!val("it").trim()){toast("Dê um nome ao item");return}
+    const item={item:val("it").trim(),categoria:val("ca"),unidade:val("un"),qtd:num("qt"),minimo:num("mi"),custo:num("cu")};
+    enviar(i.id?{aba:"Insumos",acao:"editar",id:i.id,item}:{aba:"Insumos",acao:"adicionar",item});};
+  if(i.id)$("del").onclick=()=>confirmar(`Remover ${esc(i.item)} do estoque?`,()=>enviar({aba:"Insumos",acao:"remover",id:i.id},"Removido"));
+}
+function confirmar(txt,sim){abrir(`<h3>${txt}</h3><div class="sub">Isso não pode ser desfeito.</div>${fim("Remover")}`);$("ok").onclick=sim}
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-usar],[data-comprar],[data-edf],[data-edi],[data-mv]"); if(!t) return;
+  if(t.dataset.usar) usar(t.dataset.usar);
+  else if(t.dataset.comprar) comprar(t.dataset.comprar);
+  else if(t.dataset.edf) formFil(fil(t.dataset.edf));
+  else if(t.dataset.edi){e.preventDefault();formIns(ins(t.dataset.edi))}
+  else if(t.dataset.mv) enviar({aba:"Insumos",acao:"mover",id:t.dataset.mv,delta:+t.dataset.d},"Quantidade atualizada");
+});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{aba=b.dataset.t;document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));render()});
+$("busca").addEventListener("input",render);
+$("novo").onclick=()=>aba==="fil"?formFil():formIns();
+carregar();
+</script>
+</body>
+</html>
